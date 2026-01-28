@@ -1,0 +1,66 @@
+name: Auto Update TestFlight
+
+on:
+  schedule:
+    # Runs every 60 days at midnight UTC (adjust timezone as needed)
+    # Format: minute hour day month day-of-week
+    - cron: '0 0 */60 * *'
+  workflow_dispatch: # Allows manual trigger from GitHub UI
+
+jobs:
+  build-and-submit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install EAS CLI
+        run: npm install -g eas-cli
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Increment build number
+        run: |
+          # Read current build number
+          BUILD_NUM=$(node -p "require('./app.json').expo.ios.buildNumber")
+          NEW_BUILD=$((BUILD_NUM + 1))
+          
+          # Update build number in app.json
+          node -e "
+          const fs = require('fs');
+          const appJson = JSON.parse(fs.readFileSync('app.json', 'utf8'));
+          appJson.expo.ios.buildNumber = String($NEW_BUILD);
+          fs.writeFileSync('app.json', JSON.stringify(appJson, null, 2));
+          "
+          
+          echo "Updated build number from $BUILD_NUM to $NEW_BUILD"
+          
+          # Commit the change
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git add app.json
+          git commit -m "Auto-increment build number to $NEW_BUILD for TestFlight renewal" || exit 0
+          git push
+
+      - name: Login to EAS
+        run: eas login --non-interactive
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Build iOS app
+        run: EAS_NO_VCS=1 eas build --platform ios --profile production --non-interactive
+        env:
+          EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.EXPO_PUBLIC_SUPABASE_URL }}
+          EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.EXPO_PUBLIC_SUPABASE_ANON_KEY }}
+
+      - name: Submit to TestFlight
+        run: eas submit --platform ios --non-interactive --latest
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
