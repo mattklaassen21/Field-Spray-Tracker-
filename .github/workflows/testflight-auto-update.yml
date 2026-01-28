@@ -6,6 +6,9 @@ on:
     # Format: minute hour day month day-of-week
     - cron: '0 0 */60 * *'
   workflow_dispatch: # Allows manual trigger from GitHub UI
+  push:
+    branches:
+      - main
 
 jobs:
   build-and-submit:
