@@ -38,8 +38,6 @@
       "typedRoutes": true
     },
     "extra": {
-      "supabaseUrl": "https://hctyrfslidpgysygtpyo.supabase.co",
-      "supabaseAnonKey": "sb_publishable_FigwldTn0xbXbDzO5KDRGw_k_lhUsJz",
       "router": {},
       "eas": {
         "projectId": "83314ffb-5f8f-46b1-a260-4f98603d7e86"
